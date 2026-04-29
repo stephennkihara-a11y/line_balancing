@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS balance_assignments (
 CREATE INDEX IF NOT EXISTS idx_assign_run ON balance_assignments(run_id);
 CREATE INDEX IF NOT EXISTS idx_assign_station ON balance_assignments(run_id, station);
 
--- ---------- PHASE 2/3 STUBS -----------------------------------------
+-- ---------- PHASE 2: WIP / hourly / re-balance --------------------
 CREATE TABLE IF NOT EXISTS hourly_production (
     id              SERIAL PRIMARY KEY,
     line_id         INTEGER NOT NULL REFERENCES lines(id) ON DELETE CASCADE,
@@ -180,7 +180,42 @@ CREATE TABLE IF NOT EXISTS hourly_production (
     actual          INTEGER NOT NULL,
     note            TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_hourly_line_time ON hourly_production(line_id, captured_at DESC);
 
+CREATE TABLE IF NOT EXISTS station_wip (
+    id              SERIAL PRIMARY KEY,
+    run_id          INTEGER NOT NULL REFERENCES balance_runs(id) ON DELETE CASCADE,
+    station         INTEGER NOT NULL,
+    captured_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    wip_units       INTEGER NOT NULL,
+    threshold       INTEGER NOT NULL DEFAULT 25
+);
+CREATE INDEX IF NOT EXISTS idx_wip_run_time ON station_wip(run_id, captured_at DESC);
+
+DO $$ BEGIN
+    CREATE TYPE rebalance_trigger AS ENUM (
+        'OPERATOR_ABSENT', 'MACHINE_BREAKDOWN', 'TARGET_CHANGE',
+        'OUTPUT_DEVIATION', 'MANUAL'
+    );
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+CREATE TABLE IF NOT EXISTS rebalance_events (
+    id              SERIAL PRIMARY KEY,
+    line_id         INTEGER NOT NULL REFERENCES lines(id) ON DELETE CASCADE,
+    previous_run_id INTEGER REFERENCES balance_runs(id) ON DELETE SET NULL,
+    new_run_id      INTEGER REFERENCES balance_runs(id) ON DELETE SET NULL,
+    trigger         rebalance_trigger NOT NULL,
+    detail          JSONB,
+    eff_before      NUMERIC(5,2),
+    eff_after       NUMERIC(5,2),
+    output_before   INTEGER,
+    output_after    INTEGER,
+    accepted        BOOLEAN,
+    created_by      UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ---------- PHASE 3: time study + IoT + Odoo --------------------
 CREATE TABLE IF NOT EXISTS time_studies (
     id              SERIAL PRIMARY KEY,
     operation_id    INTEGER NOT NULL REFERENCES operations(id) ON DELETE CASCADE,
@@ -191,8 +226,11 @@ CREATE TABLE IF NOT EXISTS time_studies (
     allowance       NUMERIC(5,2) NOT NULL DEFAULT 15,        -- %
     captured_sam    NUMERIC(8,3) GENERATED ALWAYS AS
                     ((cycle_seconds/60.0) * (rating/100.0) * (1 + allowance/100.0)) STORED,
+    sample_size     INTEGER NOT NULL DEFAULT 1,
+    note            TEXT,
     captured_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+CREATE INDEX IF NOT EXISTS idx_ts_op_time ON time_studies(operation_id, captured_at DESC);
 
 CREATE TABLE IF NOT EXISTS machine_telemetry (
     id              BIGSERIAL PRIMARY KEY,
@@ -203,6 +241,17 @@ CREATE TABLE IF NOT EXISTS machine_telemetry (
     payload         JSONB
 );
 CREATE INDEX IF NOT EXISTS idx_telemetry_machine_time ON machine_telemetry(machine_id, captured_at DESC);
+
+CREATE TABLE IF NOT EXISTS erp_external_ids (
+    id              SERIAL PRIMARY KEY,
+    entity          VARCHAR(40) NOT NULL,            -- 'style', 'operator', 'line', 'balance_run'
+    local_id        INTEGER NOT NULL,
+    erp_system      VARCHAR(40) NOT NULL DEFAULT 'odoo',
+    erp_model       VARCHAR(80),                     -- e.g. 'mrp.routing.workcenter'
+    erp_id          VARCHAR(80) NOT NULL,
+    last_sync       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (entity, local_id, erp_system)
+);
 
 -- ---------- TRIGGERS -------------------------------------------------
 CREATE OR REPLACE FUNCTION touch_updated_at() RETURNS trigger AS $$

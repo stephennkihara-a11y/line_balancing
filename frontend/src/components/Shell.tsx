@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { LogOut, Factory, Users, Wrench, Shirt, GitBranch, LayoutDashboard, Cog } from "lucide-react";
+import { LogOut, Factory, Users, Wrench, Shirt, GitBranch, LayoutDashboard, Cog, Activity, Timer, Cpu } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,9 @@ import { Button } from "@/components/ui/button";
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/balance", label: "Balance Wizard", icon: GitBranch },
+  { to: "/bottleneck", label: "Bottleneck", icon: Activity },
+  { to: "/time-study", label: "Time Study", icon: Timer },
+  { to: "/iot", label: "IoT", icon: Cpu },
   { to: "/styles", label: "Styles", icon: Shirt },
   { to: "/operators", label: "Operators", icon: Users },
   { to: "/machines", label: "Machines", icon: Wrench },

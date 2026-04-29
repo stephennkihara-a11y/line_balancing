@@ -9,6 +9,10 @@ import { StylesPage } from "./pages/StylesPage";
 import { StyleDetailPage } from "./pages/StyleDetailPage";
 import { BalanceWizard } from "./pages/BalanceWizard";
 import { BalanceResultPage } from "./pages/BalanceResultPage";
+import { BottleneckDashboardPage } from "./pages/BottleneckDashboard";
+import { RebalanceEventPage } from "./pages/RebalanceEventPage";
+import { TimeStudyPage } from "./pages/TimeStudyPage";
+import { IoTPage } from "./pages/IoTPage";
 import { useAuth } from "./lib/auth";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -35,6 +39,10 @@ export default function App() {
                 <Route path="/styles/:id" element={<StyleDetailPage />} />
                 <Route path="/balance" element={<BalanceWizard />} />
                 <Route path="/balance/runs/:id" element={<BalanceResultPage />} />
+                <Route path="/bottleneck" element={<BottleneckDashboardPage />} />
+                <Route path="/rebalance/events/:id" element={<RebalanceEventPage />} />
+                <Route path="/time-study" element={<TimeStudyPage />} />
+                <Route path="/iot" element={<IoTPage />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </Shell>

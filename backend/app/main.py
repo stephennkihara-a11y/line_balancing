@@ -6,7 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
 from .database import engine, Base
-from .routers import auth, lines, machines, operators, styles, balance, imports
+from .routers import (
+    auth, lines, machines, operators, styles, balance, imports,
+    production, dashboard, rebalance, timestudy, iot, odoo,
+)
 from .schemas.common import HealthResponse
 from .seed.bootstrap import bootstrap_if_empty
 
@@ -51,6 +54,14 @@ def create_app() -> FastAPI:
     app.include_router(styles.router)
     app.include_router(balance.router)
     app.include_router(imports.router)
+    # Phase 2
+    app.include_router(production.router)
+    app.include_router(dashboard.router)
+    app.include_router(rebalance.router)
+    # Phase 3
+    app.include_router(timestudy.router)
+    app.include_router(iot.router)
+    app.include_router(odoo.router)
 
     return app
 

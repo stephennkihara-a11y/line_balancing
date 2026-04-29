@@ -1,10 +1,18 @@
-# Apparel Line Balancing — AI-Powered (Phase 1 MVP)
+# Apparel Line Balancing — AI-Powered (Phases 1 + 2 + 3)
 
 AI-assisted line balancing for cut-make-trim apparel factories. Replaces
 Excel-based RPW spreadsheets with a CP-SAT solver, role-based web UI and a
 Claude-powered "what-if" explanation layer.
 
-## What's in Phase 1
+## What's included
+
+**Phase 1** — master data, CP-SAT solver, Claude advisor, balance wizard,
+layout visualiser. **Phase 2** — real-time re-balancing trigger + diff,
+bottleneck dashboard with WIP and root-cause analysis. **Phase 3** —
+mobile time-study capture, IoT telemetry ingestion + utilisation,
+Odoo-compatible REST integration.
+
+## Phase 1
 
 - **Master data**: Styles, Operations (with precedence), Operators (with
   per-operation efficiency matrix), Machines, Lines.
@@ -170,13 +178,89 @@ status and warnings.
 
 The `require_role` dependency is in `backend/app/auth/security.py`.
 
-## Phase 2 / Phase 3
+## Phase 2 — real-time re-balancing + bottleneck dashboard
 
-Stubs are present in the schema (`hourly_production`, `time_studies`,
-`machine_telemetry`) and the codebase is structured so that Phase 2
-features (real-time re-balancing, bottleneck dashboard) plug into the
-existing solver, and Phase 3 (mobile time study, IoT, Odoo) plug into
-new routers without changing master data.
+**Triggers** (any one fires a "re-balance suggested" banner on the dashboard;
+poll `GET /api/rebalance/check?line_id=…`):
+
+| Trigger              | How it's detected                                       |
+|----------------------|---------------------------------------------------------|
+| `OPERATOR_ABSENT`    | Operator on the active run has `attendance_status != PRESENT` |
+| `MACHINE_BREAKDOWN`  | Any machine on the line has `status = BREAKDOWN`        |
+| `OUTPUT_DEVIATION`   | Last hour actual vs target deviates more than ±15%      |
+| `TARGET_CHANGE`      | UI / API supplies a new `target_output_hour`            |
+| `MANUAL`             | User clicks "Propose new balance"                       |
+
+**Propose** (`POST /api/rebalance/propose`):
+- Re-runs the solver with current `PRESENT` operators and
+  `WORKING/IDLE` machines.
+- Persists a new `BalanceRun` and a `RebalanceEvent` linking it to the
+  previous run.
+- Returns a station-by-station diff with `eff_before / eff_after` and
+  `delta_output / hr` so the supervisor can see impact before accepting.
+
+**Decide** (`POST /api/rebalance/events/{id}/decide`):
+- `accepted=true` marks the new run `APPLIED` and demotes the previous
+  one to `REJECTED`.
+
+**Bottleneck dashboard** (`GET /api/dashboard/bottleneck?line_id=…`):
+- Station-level heatmap (red >100% / amber 95–100% / green 85–95% /
+  blue <85%) with the bottleneck station ringed in red.
+- WIP per station with critical/warning alerts when units exceed the
+  per-station threshold.
+- Heuristic root-cause analysis (`backend/app/services/root_cause.py`)
+  suggesting one or more of: `skill_gap`, `machine`, `method`, `layout`
+  — each with a concrete suggestion (cross-train operator X, repair
+  machine Y, re-do method study, split station Z).
+- Hourly production capture form so the deviation trigger has data.
+
+**WIP capture**: `POST /api/production/wip { run_id, station, wip_units, threshold }`
+**Hourly capture**: `POST /api/production/hourly { line_id, run_id?, hour_slot, target, actual }`
+
+## Phase 3 — mobile time study, IoT, Odoo
+
+**Time study** (`/time-study` page, `POST /api/time-studies`):
+- Mobile-friendly screen with built-in stopwatch (`Start` / `Lap` / `Stop`),
+  rating + allowance inputs, and a captured-vs-standard SAM preview.
+- Server stores `cycle_seconds`, `rating`, `allowance` and computes
+  `captured_sam = (cycle/60) * (rating/100) * (1 + allowance/100)` as a
+  Postgres generated column.
+- `GET /api/time-studies/aggregate?style_id=…` returns per-op
+  averages with `flag = high | low | ok` when deviation from standard
+  is ≥ 10%. The bottleneck root-cause service feeds on this signal.
+
+**IoT machine telemetry**:
+- `POST /api/iot/telemetry` accepts batches of
+  `{machine_code, is_running, rpm?, captured_at?, payload?}` events.
+  Auto-flips machine status (IDLE ⇄ WORKING) on the latest event.
+- `GET /api/iot/utilisation?line_id=…&minutes=60` returns each machine's
+  running %, average RPM and last-seen timestamp over the window.
+- `/iot` page renders this as a real-time utilisation table.
+
+**Odoo 18 integration** (`/api/odoo/*`):
+- `POST /api/odoo/search_read` mirrors Odoo's `search_read` semantics
+  (model + domain + fields + limit/offset). Six models are exposed:
+  `lb.style`, `lb.operation`, `lb.operator`, `lb.machine`,
+  `lb.balance_run`, `lb.balance_assignment`.
+- A tiny domain parser supports `=, !=, in, not in, >, <, >=, <=, ilike`.
+- `POST /api/odoo/external-ids` stores the Odoo external-ID mapping
+  (`erp_external_ids` table) so re-syncs are idempotent.
+
+```
+# Example: list all SNLS machines from Odoo's side
+curl -X POST http://localhost:8000/api/odoo/search_read \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"model":"lb.machine","domain":[["type","=","SNLS"]],"limit":50}'
+```
+
+## Pages added in Phase 2/3
+
+| Path                         | What                                                    |
+|------------------------------|---------------------------------------------------------|
+| `/bottleneck`                | Heatmap + root-cause + WIP / hourly capture             |
+| `/rebalance/events/:id`      | Before-vs-after diff and accept/reject buttons          |
+| `/time-study`                | Mobile stopwatch + rating/allowance + style aggregate   |
+| `/iot`                       | Live machine utilisation gauges                         |
 
 ## Repo layout
 
