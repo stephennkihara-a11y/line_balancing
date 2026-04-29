@@ -1,0 +1,36 @@
+op_code,sequence,description,sam,machine_type,skill_level,section,predecessors
+OP01,1,Collar runstitch,0.45,SNLS,3,collar,
+OP02,2,Trim and turn collar,0.30,MANUAL,1,collar,OP01
+OP03,3,Topstitch collar edge,0.55,SNLS,3,collar,OP02
+OP04,4,Mark placket,0.20,MANUAL,1,placket,
+OP05,5,Attach placket to front,0.85,SNLS,4,placket,OP04
+OP06,6,Topstitch placket box,0.70,SNLS,3,placket,OP05
+OP07,7,Bartack placket bottom,0.20,BARTACK,2,placket,OP06
+OP08,8,Buttonhole placket,0.50,BUTTONHOLE,4,placket,OP06
+OP09,9,Mark button position,0.15,MANUAL,1,placket,OP08
+OP10,10,Attach buttons,0.45,BUTTON,3,placket,OP09
+OP11,11,Inspect cut panels,0.25,MANUAL,1,front,
+OP12,12,Hem back yoke,0.30,OL,2,back,
+OP13,13,Join shoulder seams,0.60,OL,3,assembly,"OP11,OP12"
+OP14,14,Topstitch shoulder seam,0.50,FOA,3,assembly,OP13
+OP15,15,Hem sleeve cuff (rib attach),0.55,OL,3,sleeve,
+OP16,16,Topstitch sleeve cuff,0.45,FOA,3,sleeve,OP15
+OP17,17,Attach sleeve to body,0.85,OL,4,assembly,"OP14,OP16"
+OP18,18,Topstitch armhole,0.65,FOA,4,assembly,OP17
+OP19,19,Side seam join,0.95,OL,4,assembly,OP18
+OP20,20,Tack side seam at hem,0.20,BARTACK,2,assembly,OP19
+OP21,21,Bottom hem,0.55,FOA,3,assembly,OP19
+OP22,22,Attach collar to neckline,0.95,SNLS,4,collar,"OP10,OP03,OP18"
+OP23,23,Close neck tape and topstitch,0.70,SNLS,4,collar,OP22
+OP24,24,Tack collar joint,0.20,BARTACK,2,collar,OP23
+OP25,25,Attach main label,0.30,SNLS,2,finishing,OP23
+OP26,26,Attach size/care label,0.30,SNLS,2,finishing,OP25
+OP27,27,Side slit reinforcement,0.40,SNLS,3,assembly,OP21
+OP28,28,Trim threads,0.40,MANUAL,1,finishing,"OP24,OP21,OP26"
+OP29,29,Inline inspection,0.50,MANUAL,2,finishing,OP28
+OP30,30,Touch-up press collar/placket,0.45,IRON,2,finishing,OP29
+OP31,31,Final press body,0.60,IRON,2,finishing,OP30
+OP32,32,Measurement check,0.35,MANUAL,2,finishing,OP31
+OP33,33,Hangtag and price tag,0.30,MANUAL,1,finishing,OP32
+OP34,34,Fold and polybag,0.45,MANUAL,1,finishing,OP33
+OP35,35,Final QC pass,0.40,MANUAL,2,finishing,OP34
