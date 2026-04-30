@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_lb_balance_run_list" model="ir.ui.view">
+        <field name="name">lb.balance.run.list</field>
+        <field name="model">lb.balance.run</field>
+        <field name="arch" type="xml">
+            <list string="Balance Runs">
+                <field name="external_id"/>
+                <field name="style_id"/>
+                <field name="line_external_id"/>
+                <field name="target_output_hour"/>
+                <field name="line_efficiency"/>
+                <field name="balance_loss"/>
+                <field name="status"/>
+                <field name="captured_at"/>
+                <field name="production_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_lb_balance_run_form" model="ir.ui.view">
+        <field name="name">lb.balance.run.form</field>
+        <field name="model">lb.balance.run</field>
+        <field name="arch" type="xml">
+            <form string="Balance Run">
+                <sheet>
+                    <group col="2">
+                        <field name="external_id" readonly="1"/>
+                        <field name="style_id"/>
+                        <field name="line_external_id"/>
+                        <field name="target_output_hour"/>
+                        <field name="line_efficiency"/>
+                        <field name="balance_loss"/>
+                        <field name="status"/>
+                        <field name="captured_at"/>
+                        <field name="production_id"/>
+                    </group>
+                    <notebook>
+                        <page string="Assignments">
+                            <field name="assignment_ids">
+                                <list>
+                                    <field name="station"/>
+                                    <field name="operator_id"/>
+                                    <field name="operation_id"/>
+                                    <field name="machine_id"/>
+                                    <field name="cycle_time"/>
+                                    <field name="expected_output"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_lb_balance_run" model="ir.actions.act_window">
+        <field name="name">Balance Runs</field>
+        <field name="res_model">lb.balance.run</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_lb_balance_runs"
+              name="Balance Runs"
+              parent="menu_lb_root"
+              action="action_lb_balance_run"
+              sequence="10"/>
+</odoo>

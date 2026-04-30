@@ -6,11 +6,15 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import (
-    BigInteger, Boolean, DateTime, Enum, ForeignKey, Integer,
-    Numeric, String, Text, UniqueConstraint,
+    JSON, BigInteger, Boolean, DateTime, Enum, ForeignKey, Integer,
+    Numeric, String, Text, UniqueConstraint, Uuid,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+
+# Cross-dialect JSON: JSONB on Postgres, JSON elsewhere (e.g. SQLite for tests)
+_JSON = JSON().with_variant(JSONB(), "postgresql")
 
 from ..database import Base
 
@@ -55,13 +59,13 @@ class RebalanceEvent(Base):
     previous_run_id: Mapped[int | None] = mapped_column(ForeignKey("balance_runs.id", ondelete="SET NULL"))
     new_run_id: Mapped[int | None] = mapped_column(ForeignKey("balance_runs.id", ondelete="SET NULL"))
     trigger: Mapped[RebalanceTrigger] = mapped_column(Enum(RebalanceTrigger, name="rebalance_trigger"), nullable=False)
-    detail: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    detail: Mapped[dict[str, Any] | None] = mapped_column(_JSON)
     eff_before: Mapped[float | None] = mapped_column(Numeric(5, 2))
     eff_after: Mapped[float | None] = mapped_column(Numeric(5, 2))
     output_before: Mapped[int | None] = mapped_column(Integer)
     output_after: Mapped[int | None] = mapped_column(Integer)
     accepted: Mapped[bool | None] = mapped_column(Boolean)
-    created_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    created_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(), ForeignKey("users.id", ondelete="SET NULL"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
 
@@ -71,7 +75,7 @@ class TimeStudy(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     operation_id: Mapped[int] = mapped_column(ForeignKey("operations.id", ondelete="CASCADE"), nullable=False)
     operator_id: Mapped[int | None] = mapped_column(ForeignKey("operators.id", ondelete="SET NULL"))
-    captured_by: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"))
+    captured_by: Mapped[uuid.UUID | None] = mapped_column(Uuid(), ForeignKey("users.id", ondelete="SET NULL"))
     cycle_seconds: Mapped[float] = mapped_column(Numeric(8, 3), nullable=False)
     rating: Mapped[float] = mapped_column(Numeric(5, 2), default=100, nullable=False)
     allowance: Mapped[float] = mapped_column(Numeric(5, 2), default=15, nullable=False)
@@ -90,7 +94,7 @@ class MachineTelemetry(Base):
     captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     is_running: Mapped[bool] = mapped_column(Boolean, nullable=False)
     rpm: Mapped[int | None] = mapped_column(Integer)
-    payload: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    payload: Mapped[dict[str, Any] | None] = mapped_column(_JSON)
 
 
 class ErpExternalId(Base):

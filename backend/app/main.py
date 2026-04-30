@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
-from .database import engine, Base
+from .db_migrations import run_migrations
 from .routers import (
     auth, lines, machines, operators, styles, balance, imports,
     production, dashboard, rebalance, timestudy, iot, odoo,
@@ -18,8 +18,11 @@ logger = logging.getLogger("line_balancing")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Tables created by db/init.sql; this is a fallback for sqlite/dev without the migration
-    Base.metadata.create_all(bind=engine)
+    try:
+        run_migrations()
+    except Exception as e:
+        logger.error("Alembic migrations failed: %s", e)
+        raise
     try:
         bootstrap_if_empty()
     except Exception as e:

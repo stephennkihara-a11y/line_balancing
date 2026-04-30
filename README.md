@@ -72,6 +72,44 @@ Odoo-compatible REST integration.
                              └──────────────────────────┘
 ```
 
+## Migrations & tests
+
+Schema changes are managed by **Alembic** (`backend/alembic/`). The FastAPI
+app runs `alembic upgrade head` automatically on startup
+(`backend/app/db_migrations.py`); for a manual run:
+
+```bash
+cd backend && alembic upgrade head      # apply
+cd backend && alembic revision --autogenerate -m "your message"   # new rev
+```
+
+Tests use an **in-memory SQLite** with the same SQLAlchemy models
+(`Uuid` and `JSON` types are dialect-aware). 16 tests across the
+solver, re-balance trigger logic, and the dashboard / rebalance routers:
+
+```bash
+cd backend && python -m venv .venv && .venv/bin/pip install -r requirements.txt
+cd backend && .venv/bin/python -m pytest -q
+# ................                                                         [100%]
+# 16 passed in 15.5s
+```
+
+The router tests cover:
+- `/api/dashboard/bottleneck` — empty, populated, WIP-alert paths
+- `/api/rebalance/check` — no-trigger, OPERATOR_ABSENT, MACHINE_BREAKDOWN,
+  OUTPUT_DEVIATION, within-tolerance
+- `/api/rebalance/propose` — produces a station-by-station diff
+- `/api/rebalance/events/{id}/decide` — accept promotes new run to APPLIED
+  and demotes the previous one to REJECTED
+
+## Odoo 18 connector
+
+A full Odoo 18 addon lives in `odoo/line_balancing_connector/`. It
+provides mirror models for styles, operations, operators, machines and
+balance runs, plus a 15-minute cron that calls `lb.sync.sync_all()`.
+See [`odoo/line_balancing_connector/README.md`](odoo/line_balancing_connector/README.md)
+for install + configuration.
+
 ## Quick start (Docker)
 
 ```bash

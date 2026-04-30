@@ -1,0 +1,16 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_lb_config_user,lb.config user,model_lb_config,base.group_user,1,0,0,0
+access_lb_config_manager,lb.config manager,model_lb_config,mrp.group_mrp_manager,1,1,1,1
+access_lb_style_user,lb.style user,model_lb_style,base.group_user,1,0,0,0
+access_lb_style_manager,lb.style manager,model_lb_style,mrp.group_mrp_manager,1,1,1,1
+access_lb_operation_user,lb.operation user,model_lb_operation,base.group_user,1,0,0,0
+access_lb_operation_manager,lb.operation manager,model_lb_operation,mrp.group_mrp_manager,1,1,1,1
+access_lb_operator_user,lb.operator user,model_lb_operator,base.group_user,1,0,0,0
+access_lb_operator_manager,lb.operator manager,model_lb_operator,mrp.group_mrp_manager,1,1,1,1
+access_lb_machine_user,lb.machine user,model_lb_machine,base.group_user,1,0,0,0
+access_lb_machine_manager,lb.machine manager,model_lb_machine,mrp.group_mrp_manager,1,1,1,1
+access_lb_balance_run_user,lb.balance.run user,model_lb_balance_run,base.group_user,1,0,0,0
+access_lb_balance_run_manager,lb.balance.run manager,model_lb_balance_run,mrp.group_mrp_manager,1,1,1,1
+access_lb_balance_assignment_user,lb.balance.assignment user,model_lb_balance_assignment,base.group_user,1,0,0,0
+access_lb_balance_assignment_manager,lb.balance.assignment manager,model_lb_balance_assignment,mrp.group_mrp_manager,1,1,1,1
+access_lb_sync_wizard_user,lb.sync.wizard user,model_lb_sync_wizard,base.group_user,1,1,1,1

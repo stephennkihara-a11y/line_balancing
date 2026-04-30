@@ -8,7 +8,8 @@ services:
       POSTGRES_DB: line_balancing
     volumes:
       - db_data:/var/lib/postgresql/data
-      - ./db/init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
+      # Schema is now applied by Alembic from the backend container at startup
+      # (see backend/alembic). The init.sql is kept under db/ as a reference.
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d line_balancing"]
       interval: 5s

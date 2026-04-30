@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_lb_sync_wizard_form" model="ir.ui.view">
+        <field name="name">lb.sync.wizard.form</field>
+        <field name="model">lb.sync.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Sync from Line Balancing">
+                <group>
+                    <field name="summary" readonly="1" nolabel="1"/>
+                </group>
+                <footer>
+                    <button name="action_sync" string="Run sync now" type="object" class="btn-primary"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_lb_sync_wizard" model="ir.actions.act_window">
+        <field name="name">Sync Line Balancing</field>
+        <field name="res_model">lb.sync.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <menuitem id="menu_lb_sync_wizard"
+              name="Sync now"
+              parent="mrp.menu_mrp_root"
+              action="action_lb_sync_wizard"
+              sequence="90"/>
+</odoo>
