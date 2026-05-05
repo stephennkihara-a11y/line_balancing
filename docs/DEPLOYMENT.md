@@ -9,6 +9,7 @@ needs offline-tolerant access.**
 |------|----------|--------|----------------------|
 | **A. On-prem single VM (Docker Compose)** | Pilot or single factory, sensitive data must stay on-site | ½ day | $0 (own hardware) — $20 (small VPS) |
 | **B. Managed PaaS** (Render / Railway + Vercel + Neon) | Fast SaaS-style rollout, no ops team | 2 hours | $30–$80 |
+| **B-free. Render free + Cloudflare Pages + Neon free** | Demo, pilot, or tiny single-line factory | 45 min | **$0** |
 | **C. Cloud VM with reverse proxy** (Hetzner / DO / Lightsail + Caddy) | Predictable cost, full control, single region | 1 day | $10–$40 |
 | **D. Kubernetes (EKS / GKE / k3s)** | Multi-factory, scale > 10 concurrent solvers, in-house DevOps | 1 week | $200+ |
 | **E. Hybrid: on-prem floor + cloud sync** ⭐ | Real apparel factories with floor tablets + cross-site reporting | 2–3 days | $20 cloud + own server |
@@ -191,6 +192,170 @@ Update the backend's `CORS_ORIGINS` to include your Vercel URL.
   Use a paid plan or enable "always on".
 - ✗ IoT telemetry to a public PaaS endpoint adds 20–80 ms vs LAN-local.
   If sensors are on the same WiFi, prefer Path A or E.
+
+---
+
+## Path B (free tier) — Render + Cloudflare Pages + Neon (zero $)
+
+A truly $0/month deployment that's fine for **demos, pilots, and small
+single-line factories** but has real limits you should plan around.
+Total time: ~45 minutes.
+
+### What you get and what you give up
+
+| Service | Free tier | What hurts |
+|---------|-----------|-----------|
+| **Cloudflare Pages** (frontend) | Unlimited static hosting + bandwidth, free TLS, OK for commercial use | None for our use |
+| **Render** (backend) | 512 MB RAM, 0.1 CPU, spins down after **15 min of inactivity**, 750 hrs/month | Cold start ~30–60 s on first request after idle. CP-SAT solver may OOM on > 50-op styles. |
+| **Neon** (Postgres 16) | 0.5 GB storage, branching, autosuspend after 5 min idle | First query after suspend takes ~1 s. |
+
+> ⚠️ **Vercel's Hobby plan is "non-commercial only"** in its TOS. For a
+> factory-facing app prefer **Cloudflare Pages** which has no such clause
+> and a more generous bandwidth allowance.
+
+### B-free.1 Database — Neon
+
+1. Sign up at <https://neon.tech> with GitHub.
+2. **Create project** → region close to your users → Postgres 16.
+3. **Dashboard → Connection Details** → copy the *psycopg2* URL. It looks
+   like:
+   ```
+   postgresql://lb_user:abc123@ep-cool.eu-central-1.aws.neon.tech/neondb?sslmode=require
+   ```
+4. Convert to SQLAlchemy form by inserting `+psycopg2`:
+   ```
+   postgresql+psycopg2://lb_user:abc123@ep-cool.eu-central-1.aws.neon.tech/neondb?sslmode=require
+   ```
+   Save this — you'll paste it into Render in the next step.
+
+### B-free.2 Backend — Render
+
+1. Sign up at <https://render.com> with GitHub.
+2. **New → Web Service** → connect this repo → branch
+   `claude/ai-line-balancing-system-KMhsO` (or your fork's `main`).
+3. Settings:
+   - **Name**: `line-balancing-api`
+   - **Root Directory**: `backend`
+   - **Runtime**: Docker (auto-detected from `backend/Dockerfile`)
+   - **Instance Type**: **Free** (512 MB / 0.1 CPU)
+   - **Health Check Path**: `/api/health`
+4. **Environment** → add:
+   | Key | Value |
+   |-----|-------|
+   | `DATABASE_URL` | the SQLAlchemy URL from B-free.1 |
+   | `JWT_SECRET` | run `python -c "import secrets; print(secrets.token_urlsafe(48))"` |
+   | `ANTHROPIC_API_KEY` | `sk-ant-...` (or leave blank to use the deterministic fallback narrative) |
+   | `ANTHROPIC_MODEL` | `claude-sonnet-4-6` |
+   | `ENVIRONMENT` | `production` |
+   | `CORS_ORIGINS` | `["https://lb.pages.dev"]` (placeholder; you'll update after B-free.3) |
+   | `SOLVER_TIME_LIMIT_S` | `15` *(reduce from 30 to fit the 512 MB / 0.1 CPU envelope)* |
+5. **Create Web Service**. The first build takes ~5 min (Docker, OR-Tools
+   wheel is large). Watch the logs — you should see:
+   ```
+   INFO  [alembic.runtime.migration] Running upgrade  -> 0001_initial
+   line_balancing.bootstrap   seed complete
+   Uvicorn running on http://0.0.0.0:10000
+   ```
+6. Render gives you a URL like `https://line-balancing-api.onrender.com`.
+   Test:
+   ```bash
+   curl https://line-balancing-api.onrender.com/api/health
+   # {"status":"ok","environment":"production","version":"0.1.0"}
+   ```
+
+### B-free.3 Frontend — Cloudflare Pages
+
+1. Sign up at <https://pages.cloudflare.com> with GitHub.
+2. **Create application → Connect to Git** → pick this repo.
+3. Build configuration:
+   - **Framework preset**: Vite
+   - **Build command**: `npm run build`
+   - **Build output directory**: `dist`
+   - **Root directory** (advanced): `frontend`
+4. **Environment variables** → Production:
+   - `VITE_API_URL` = `https://line-balancing-api.onrender.com/api`
+5. **Save & deploy**. Cloudflare gives you `https://<project>.pages.dev`.
+6. **Go back to Render → Environment** and update
+   `CORS_ORIGINS = ["https://<project>.pages.dev"]`. Save → Render
+   restarts automatically.
+
+Visit your Pages URL → log in as `admin / admin123` → **change the
+password immediately** and create real users via the API.
+
+### B-free.4 Mitigating Render's cold start
+
+Render free spins down after 15 minutes of no requests. The first
+request after that wakes the container in ~30–60 s, which feels broken
+to floor users. Two zero-cost mitigations:
+
+**Option 1 — UptimeRobot keep-warm** (simplest)
+
+1. Sign up at <https://uptimerobot.com> (free, 50 monitors).
+2. **Add monitor** → HTTP(s) → URL `https://line-balancing-api.onrender.com/api/health`
+   → interval **5 minutes**.
+3. Done — Render now sees a request every 5 min and never spins down
+   during business hours. (Render's terms allow this; just keep one
+   monitor, not a dozen.)
+
+**Option 2 — frontend warm-up on load**
+
+Add to `frontend/src/main.tsx` *before* the `ReactDOM.createRoot`:
+
+```ts
+fetch(`${import.meta.env.VITE_API_URL}/health`).catch(() => {});
+```
+
+This fires a non-blocking warm-up the moment a tablet hits the page,
+so by the time the user logs in the API is already responsive.
+
+### B-free.5 Database keep-warm (optional)
+
+Neon autosuspends after 5 min idle, adding ~1 s to the first query.
+For a single-factory pilot this is fine. If you want it always-on:
+
+- Upgrade Neon to Launch ($19/mo) — disables autosuspend, or
+- Set up a Cloudflare Worker cron that hits `/api/health` every 4 min
+  (Workers free tier is 100k requests/day).
+
+### B-free.6 Realistic limits of this setup
+
+This is a fine **pilot / demo / small factory** deployment. Things that
+will break it:
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Solver times out on a 60-op style | 0.1 CPU + 15-s limit | Drop to ~30 ops, or upgrade Render to **Starter** ($7/mo, 0.5 CPU 512 MB) — solver fits comfortably |
+| 502 / "Application failed to respond" intermittently | Render container OOM during a big solve | Same — upgrade or split solves into a worker queue |
+| First click of the day is slow | Cold starts (Render + Neon) | UptimeRobot ping (above) |
+| Postgres "too many connections" | Neon free has a 100-connection limit; the backend's pool is 10/20 | Reduce `pool_size` to 5 + `max_overflow=10` in `backend/app/database.py` |
+| IoT telemetry batches dropped | 0.1 CPU can't keep up with > ~50 events/min | Move IoT ingest to a self-hosted MQTT bridge (Path A or E) |
+
+### B-free.7 First $7/mo — when to spend it
+
+The single highest-leverage upgrade is **Render Starter** ($7/mo):
+0.5 CPU, 512 MB, **no spin-down**. It removes the cold-start problem
+and gives the solver enough CPU for a typical 35-op polo style. Keep
+Cloudflare Pages and Neon on free.
+
+After that, the next $19 buys **Neon Launch** for an always-on DB and
+4 GB storage — useful once you start collecting hourly production and
+IoT telemetry over months.
+
+### B-free.8 Cheat sheet
+
+```bash
+# Local prep (one-time)
+python -c "import secrets; print(secrets.token_urlsafe(48))"   # JWT_SECRET
+
+# 1. Neon: create project, copy psycopg2 URL, prepend "+psycopg2"
+# 2. Render: New Web Service → backend root → Free instance
+#    Env: DATABASE_URL, JWT_SECRET, ANTHROPIC_API_KEY, CORS_ORIGINS, SOLVER_TIME_LIMIT_S=15
+# 3. Cloudflare Pages: New project → frontend root → Vite preset
+#    Env: VITE_API_URL=https://<render-url>/api
+# 4. Update Render's CORS_ORIGINS with the Pages URL
+# 5. UptimeRobot: 5-min HTTP monitor on /api/health  (keeps Render warm)
+# 6. Log in as admin/admin123, rotate passwords immediately
+```
 
 ---
 
