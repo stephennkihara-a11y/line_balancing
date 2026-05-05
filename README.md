@@ -110,6 +110,14 @@ balance runs, plus a 15-minute cron that calls `lb.sync.sync_all()`.
 See [`odoo/line_balancing_connector/README.md`](odoo/line_balancing_connector/README.md)
 for install + configuration.
 
+## Deployment
+
+For production deployments — single VM, managed PaaS, Kubernetes, or
+the recommended **on-prem floor + cloud sync hybrid** for real apparel
+factories — see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). It covers
+five deployment paths with effort/cost estimates, a hardening checklist,
+monitoring, backups, PWA install on tablets, and a one-screen cheat sheet.
+
 ## Quick start (Docker)
 
 ```bash
