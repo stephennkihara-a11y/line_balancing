@@ -4,6 +4,12 @@ AI-assisted line balancing for cut-make-trim apparel factories. Replaces
 Excel-based RPW spreadsheets with a CP-SAT solver, role-based web UI and a
 Claude-powered "what-if" explanation layer.
 
+> **New here? Start with [`docs/OVERVIEW.md`](docs/OVERVIEW.md)** — a
+> non-technical, process-focused walkthrough of what the system does for
+> Industrial Engineers, Supervisors and Production Managers, with the
+> end-to-end factory loop (Plan → Execute → Monitor → Adapt → Learn) and
+> the achievements vs Excel-based working.
+
 ## What's included
 
 **Phase 1** — master data, CP-SAT solver, Claude advisor, balance wizard,
