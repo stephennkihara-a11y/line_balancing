@@ -13,6 +13,7 @@ from ..models import (
 from ..schemas.balance import (
     BalanceRequest, BalanceResponse, AssignmentOut, StationLoad,
     BalanceRunOut, ExplainRequest, ExplainResponse,
+    BalanceSuggestionRequest, BalanceSuggestionResponse,
 )
 from ..auth.security import require_role, get_current_user
 from ..config import get_settings
@@ -20,6 +21,7 @@ from ..services.solver import (
     SolverInput, OpDTO, OperatorDTO, solve, compute_takt,
 )
 from ..services import claude_advisor
+from ..services.suggestion import SuggestionInput, suggest as _suggest_calc
 
 router = APIRouter(prefix="/api/balance", tags=["balance"])
 
@@ -447,3 +449,69 @@ def apply_run(
     db.commit()
     db.refresh(run)
     return run
+
+
+# ---------------------------------------------------------------------
+# Pre-balance suggestion: "what target output should we aim for?"
+# ---------------------------------------------------------------------
+@router.post("/suggest", response_model=BalanceSuggestionResponse)
+def suggest_target(
+    payload: BalanceSuggestionRequest,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+) -> BalanceSuggestionResponse:
+    """Compute suggested hourly output for a (style, line, operators, eff) tuple.
+
+    Defaults `operators` to the line's planned capacity. The math:
+        output/hr = (operators × 60 × efficiency) / total_SAM
+    plus a hard cap from the heaviest single operation, plus a reverse
+    "operators required to hit X/hr" calculation when target_output_hour
+    is supplied.
+    """
+    style = (
+        db.query(Style)
+        .options(selectinload(Style.operations))
+        .filter(Style.id == payload.style_id)
+        .first()
+    )
+    if not style:
+        raise HTTPException(404, "Style not found")
+    if not style.operations:
+        raise HTTPException(400, "Style has no operations")
+
+    line = db.get(Line, payload.line_id)
+    if not line:
+        raise HTTPException(404, "Line not found")
+
+    operators = payload.operators or line.capacity
+    total_sam = sum(float(o.sam) for o in style.operations)
+
+    heaviest_op = max(style.operations, key=lambda o: float(o.sam))
+    bottleneck_min = float(heaviest_op.sam)
+    bottleneck_code = heaviest_op.op_code
+
+    res = _suggest_calc(SuggestionInput(
+        total_sam_min=total_sam,
+        operators=operators,
+        efficiency_pct=payload.efficiency_pct,
+        working_minutes=payload.working_minutes,
+        target_output_hour=payload.target_output_hour,
+        bottleneck_op_min=bottleneck_min,
+        bottleneck_op_code=bottleneck_code,
+    ))
+
+    return BalanceSuggestionResponse(
+        style_id=style.id,
+        line_id=line.id,
+        total_sam_min=round(total_sam, 3),
+        operators_used=operators,
+        efficiency_pct=payload.efficiency_pct,
+        working_minutes=payload.working_minutes,
+        suggested_output_hour=res.suggested_output_hour,
+        suggested_output_day=res.suggested_output_day,
+        takt_time_min=res.takt_time_min,
+        theoretical_operators_at_target=res.theoretical_operators_at_target,
+        bottleneck_op_min=round(bottleneck_min, 3),
+        bottleneck_op_code=bottleneck_code,
+        notes=res.notes,
+    )

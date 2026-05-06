@@ -40,3 +40,4 @@ coverage/
 .pytest_cache/
 backend/.venv/
 backend/.pytest_cache/
+*.tsbuildinfo

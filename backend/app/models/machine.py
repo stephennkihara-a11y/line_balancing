@@ -36,6 +36,7 @@ class Machine(Base):
         Enum(MachineStatus, name="machine_status"), default=MachineStatus.IDLE, nullable=False
     )
     notes: Mapped[str | None] = mapped_column(Text)
+    last_maintenance_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
 
