@@ -61,9 +61,10 @@ CREATE TABLE IF NOT EXISTS machines (
     type            machine_type NOT NULL,
     line_id         INTEGER REFERENCES lines(id) ON DELETE SET NULL,
     status          machine_status NOT NULL DEFAULT 'IDLE',
-    notes           TEXT,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    notes               TEXT,
+    last_maintenance_at TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_machines_type ON machines(type);
 CREATE INDEX IF NOT EXISTS idx_machines_line ON machines(line_id);

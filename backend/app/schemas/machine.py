@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 from ..models.machine import MachineType, MachineStatus
@@ -9,6 +11,7 @@ class MachineCreate(BaseModel):
     line_id: int | None = None
     status: MachineStatus = MachineStatus.IDLE
     notes: str | None = None
+    last_maintenance_at: datetime | None = None
 
 
 class MachineUpdate(BaseModel):
@@ -16,6 +19,7 @@ class MachineUpdate(BaseModel):
     line_id: int | None = None
     status: MachineStatus | None = None
     notes: str | None = None
+    last_maintenance_at: datetime | None = None
 
 
 class MachineOut(BaseModel):
@@ -25,6 +29,7 @@ class MachineOut(BaseModel):
     line_id: int | None
     status: MachineStatus
     notes: str | None
+    last_maintenance_at: datetime | None
 
     class Config:
         from_attributes = True

@@ -22,6 +22,7 @@ export interface Machine {
   line_id: number | null;
   status: MachineStatus;
   notes: string | null;
+  last_maintenance_at: string | null;
 }
 
 export interface Skill {
