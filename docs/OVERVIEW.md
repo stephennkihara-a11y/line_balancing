@@ -114,9 +114,19 @@ cycle time and meets the daily output target.
    `op_code, sequence, description, sam, machine_type, skill_level,
    section, predecessors`). The system computes total SAM, validates
    precedence, and shows the routing as a list.
-2. IE goes to **Balance Wizard**, picks the style, picks the line,
-   types target output per hour (e.g. `60`), optionally hand-picks
-   operators (default: every PRESENT operator on the line).
+2. IE goes to **Balance Wizard**, picks the style and line. The wizard
+   immediately shows a **suggested hourly output** based on:
+   - the line's planned operator count (defaults to `Line.capacity`,
+     editable per scenario),
+   - an **industrial garment efficiency** slider with presets:
+     *Ramp-up* 55% · *Established* 80% · *World-class* 90%,
+   - the heaviest single operation as a hard ceiling.
+
+   Formula:
+   `output/hr ≈ (operators × 60 × efficiency%) / total_SAM`,
+   capped at `60 / heaviest_op_min`. The reverse — *"to hit X/hr at
+   this efficiency you'd need N operators"* — is shown alongside.
+   Click **Use suggestion** and the target field is filled in.
 3. Click **Solve and view layout**. Behind the scenes:
    - The CP-SAT solver maximises line efficiency subject to:
      * each operation assigned to exactly one operator/station,

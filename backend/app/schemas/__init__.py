@@ -10,4 +10,5 @@ from .style import (
 from .balance import (
     BalanceRequest, BalanceResponse, AssignmentOut, StationLoad,
     BalanceRunOut, ExplainRequest, ExplainResponse,
+    BalanceSuggestionRequest, BalanceSuggestionResponse,
 )

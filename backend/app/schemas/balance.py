@@ -83,3 +83,42 @@ class ExplainRequest(BaseModel):
 class ExplainResponse(BaseModel):
     run_id: int
     explanation: str
+
+
+# ---------- Suggestion (pre-balance "what's the right target?") -------
+class BalanceSuggestionRequest(BaseModel):
+    style_id: int
+    line_id: int
+    operators: int | None = Field(
+        default=None, ge=1, le=500,
+        description="Planned operators on the line. Defaults to line.capacity.",
+    )
+    efficiency_pct: float = Field(
+        default=80.0, ge=10, le=120,
+        description="Industrial garment efficiency assumption. 50-65 ramp-up, "
+                    "70-85 established, 85-95 world-class. Default 80.",
+    )
+    working_minutes: int = Field(default=480, ge=60, le=1440)
+    target_output_hour: int | None = Field(
+        default=None, ge=1,
+        description="Optional: if supplied, also report how many operators "
+                    "would be needed at the given efficiency to hit it.",
+    )
+
+
+class BalanceSuggestionResponse(BaseModel):
+    style_id: int
+    line_id: int
+    total_sam_min: float
+    operators_used: int
+    efficiency_pct: float
+    working_minutes: int
+    # Core suggestion
+    suggested_output_hour: int
+    suggested_output_day: int
+    takt_time_min: float
+    # Capacity context
+    theoretical_operators_at_target: int | None = None
+    bottleneck_op_min: float | None = None
+    bottleneck_op_code: str | None = None
+    notes: list[str] = []
